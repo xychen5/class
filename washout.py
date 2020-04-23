@@ -1,3 +1,4 @@
+
 class WashOut:
     washOutData = {
         "pitch": 0, #俯仰
