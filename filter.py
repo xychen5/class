@@ -7,13 +7,8 @@ import logging as LOG
 
 
 class BaseFilter:
-    __getSampleInterval = 0
-    __cutoffFreq = 0
-    __damping = 0
-
     def __init__(self, getSampleInterval):
         """
-
         :param getSampleInterval: 获取样本的间隔时间：单位为s
         """
         if getSampleInterval <= 0:
@@ -41,9 +36,9 @@ class BaseFilter:
     def getDamping(self):
         return self.__damping
 
+
+# 二阶低通实现持续平动加速模拟
 class TransLPFilter(BaseFilter):
-    __inputSrc_2order = [0, 0, 0]
-    __outputSrc_2order = [0, 0, 0]
     def __init__(self, getSampleInterval):
         super().__init__(getSampleInterval)
         self.__inputSrc_2order = [0, 0, 0]
@@ -58,9 +53,10 @@ class TransLPFilter(BaseFilter):
         A = self.getCutoffFreq() ** 2 * self.getGetSampleInterval() ** 2
         B = 4 * self.getCutoffFreq() * self.getDamping() * self.getGetSampleInterval()
         self.__inputSrc_2order[0] = trans_input
-        self.__outputSrc_2order[0] = (4 * (self.__inputSrc_2order[0] - 2 * self.__inputSrc_2order[1] + self.__inputSrc_2order[2]) -
-                               (2 * A - 8) * self.__outputSrc_2order[1] -
-                               (A - B + 4) * self.__outputSrc_2order[2]) / (A + B + 4)
+        self.__outputSrc_2order[0] = (A * (
+                    self.__inputSrc_2order[0] + 2 * self.__inputSrc_2order[1] + self.__inputSrc_2order[2]) -
+                                      (2 * A - 8) * self.__outputSrc_2order[1] -
+                                      (A - B + 4) * self.__outputSrc_2order[2]) / (A + B + 4)
 
         self.__inputSrc_2order[2] = self.__inputSrc_2order[1]
         self.__inputSrc_2order[1] = self.__inputSrc_2order[0]
@@ -69,18 +65,98 @@ class TransLPFilter(BaseFilter):
 
         return self.__outputSrc_2order[0]
 
-#可以看出，每个实例的私有变量是互相不影响的
+
+# 二阶高通实现突发线性加速度模拟
+class TransHPFilter(BaseFilter):
+    def __init__(self, getSampleInterval):
+        super().__init__(getSampleInterval)
+        self.__inputSrc_2order = [0, 0, 0]
+        self.__outputSrc_2order = [0, 0, 0]
+
+    def filter(self, trans_input):
+        """
+        低通滤波：
+        :param trans_input:输入的平动数据
+        :return: 返回滤波后的值
+        """
+        A = self.getCutoffFreq() ** 2 * self.getGetSampleInterval() ** 2
+        B = 4 * self.getCutoffFreq() * self.getDamping() * self.getGetSampleInterval()
+        self.__inputSrc_2order[0] = trans_input
+        self.__outputSrc_2order[0] = (4 * (
+                    self.__inputSrc_2order[0] - 2 * self.__inputSrc_2order[1] + self.__inputSrc_2order[2]) -
+                                      (2 * A - 8) * self.__outputSrc_2order[1] -
+                                      (A - B + 4) * self.__outputSrc_2order[2]) / (A + B + 4)
+
+        self.__inputSrc_2order[2] = self.__inputSrc_2order[1]
+        self.__inputSrc_2order[1] = self.__inputSrc_2order[0]
+        self.__outputSrc_2order[2] = self.__outputSrc_2order[1]
+        self.__outputSrc_2order[1] = self.__outputSrc_2order[0]
+
+        return self.__outputSrc_2order[0]
+
+
+# 一阶高通实现旋转的角加速度模拟
+# 经典洗出算法使用的是一阶，改成2阶可以回到原点
+class RotatHPFilter(BaseFilter):
+    def __init__(self, getSampleInterval):
+        super().__init__(getSampleInterval)
+        self.__inputSrc_1order = [0, 0]
+        self.__outputSrc_1order = [0, 0]
+
+    def filter(self, wInput):
+        wT = self.getCutoffFreq() * self.getGetSampleInterval()
+        self.__inputSrc_1order[0] = wInput
+        self.__outputSrc_1order[0] = (2 * self.__inputSrc_1order[0]
+                                      - 2 * self.__inputSrc_1order[1]
+                                      + (2 - wT) * self.__outputSrc_1order[1]) / (2 + wT)
+
+        self.__inputSrc_1order[1] = self.__inputSrc_1order[0]
+        self.__outputSrc_1order[1] = self.__outputSrc_1order[0]
+        return self.__outputSrc_1order[0]
+
+# class RotatHPFilter(BaseFilter):
+#     def __init__(self, getSampleInterval):
+#         super().__init__(getSampleInterval)
+#         self.__inputSrc_2order = [0, 0, 0]
+#         self.__outputSrc_2order = [0, 0, 0]
+#
+#     def filter(self, trans_input):
+#         """
+#         低通滤波：
+#         :param trans_input:输入的平动数据
+#         :return: 返回滤波后的值
+#         """
+#         A = self.getCutoffFreq() ** 2 * self.getGetSampleInterval() ** 2
+#         B = 4 * self.getCutoffFreq() * self.getDamping() * self.getGetSampleInterval()
+#         self.__inputSrc_2order[0] = trans_input
+#         self.__outputSrc_2order[0] = (4 * (
+#                     self.__inputSrc_2order[0] - 2 * self.__inputSrc_2order[1] + self.__inputSrc_2order[2]) -
+#                                       (2 * A - 8) * self.__outputSrc_2order[1] -
+#                                       (A - B + 4) * self.__outputSrc_2order[2]) / (A + B + 4)
+#
+#         self.__inputSrc_2order[2] = self.__inputSrc_2order[1]
+#         self.__inputSrc_2order[1] = self.__inputSrc_2order[0]
+#         self.__outputSrc_2order[2] = self.__outputSrc_2order[1]
+#         self.__outputSrc_2order[1] = self.__outputSrc_2order[0]
+#
+#         return self.__outputSrc_2order[0]
+
+# 可以看出，每个实例的私有变量是互相不影响的
 b = BaseFilter(0.01)
 c = BaseFilter(0.03)
-print (b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
 t = TransLPFilter(0.02)
-print (t.getGetSampleInterval())
-print (b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
-print (b.getCutoffFreq(), "  ", b.getDamping())
+print(t.getGetSampleInterval())
+print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+print(b.getCutoffFreq(), "  ", b.getDamping())
 b.setGetSampleInterval(0.07)
-print (t.getGetSampleInterval())
-print (b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
-#
+print(t.getGetSampleInterval())
+print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+print(b.__dict__)
+
+
+
+
 # # unit func implement:
 # def unit(t):
 #     r = np.where(t > 1, 1.0, 0.0)
@@ -96,7 +172,7 @@ print (b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
 # def high_pass_filter(w_cutoff=1, w_src=0, get_sample_interval=10.0 / 1000):
 #     wT = w_cutoff * get_sample_interval
 #     inputSrc[0] = w_src
-#     outputSrc[0] = (2 * inputSrc[0] - 2 * inputSrc[1] + 2 * outputSrc[1]) / (2 + wT)
+#     outputSrc[0] = (2 * inputSrc[0] - 2 * inputSrc[1] + (2 - wT) * outputSrc[1]) / (2 + wT)
 #
 #     inputSrc[1] = inputSrc[0]
 #     outputSrc[1] = outputSrc[0]

@@ -4,6 +4,25 @@ import math
 import logging as LOG
 import numpy as np
 
+
+def deg2rad(deg):
+    return deg / 180.0 * math.pi
+
+
+class DataItem:
+    """
+    输入数据单元的结构体,取右手系，x轴向前，y轴向作，z轴向上
+    pitch 是绕y轴的运动， roll 是绕x轴的运动
+    """
+
+    def __init__(self, pitch_ang_val, roll_ang_val, xAcc, yAcc, zAcc):
+        self.wPitch = deg2rad(pitch_ang_val)
+        self.wRoll = deg2rad(roll_ang_val)
+        self.xAcc = xAcc
+        self.yAcc = yAcc
+        self.zAcc = zAcc
+
+
 class DataInput:
     # raw data
     oriData = {}
@@ -26,7 +45,7 @@ class DataOutput:
 
     def DataOutput(self):
         # 由于 3 dof 运动平台限制，从洗出算法中获得的有效数据只有，updown，pitch，roll三种
-        washOutData = WashOut.GetWashOutData()
+        washOutData = WashOut.getWashOutData()
 
         # 为washOutData赋值作测试, 正式的运行时需要删除
         washOutData.pitch = 1.2
@@ -95,10 +114,10 @@ class DataOutput:
         z = washOutData.updown
 
         T = np.array([
-            [cosb , sina*sinb, sinb*cosa, 0],
-            [0    , cosa     , -sina    , 0],
-            [-sinb, sina*cosb, cosa*cosb, z],
-            [0    , 0        , 0        , 1]
+            [cosb, sina * sinb, sinb * cosa, 0],
+            [0, cosa, -sina, 0],
+            [-sinb, sina * cosb, cosa * cosb, z],
+            [0, 0, 0, 1]
         ])
 
         # 经过状态T后的a1',a2',a3'分别如下
@@ -160,22 +179,22 @@ class DataOutput:
 
             # xk时F(X)的值为：
             Fxk = np.array([
-                [(xk[0] - dfb/2)**2 + (xk[1] + ct)**2 - d1**2],
-                [(xk[2] + dfb/2)**2 + (xk[2] + dlr/2)**2 + (xk[3] + ct)**2 - d2**2],
-                [(xk[4] + dfb/2)**2 + (xk[4] + dlr/2)**2 + (xk[5] + ct)**2 - d3**2],
-                [(xk[0] - xk[2])**2 + xk[2]**2 + (xk[1] - xk[3])**2 - (dfb/2)**2 - dfb**2],
-                [(xk[0] - xk[4])**2 + xk[4]**2 + (xk[1] - xk[5])**2 - (dfb/2)**2 - dfb**2],
-                [(xk[2] - xk[4])**2 + (xk[2] + xk[4])**2 + (xk[3] - xk[5])**2 - dlr**2]
+                [(xk[0] - dfb / 2) ** 2 + (xk[1] + ct) ** 2 - d1 ** 2],
+                [(xk[2] + dfb / 2) ** 2 + (xk[2] + dlr / 2) ** 2 + (xk[3] + ct) ** 2 - d2 ** 2],
+                [(xk[4] + dfb / 2) ** 2 + (xk[4] + dlr / 2) ** 2 + (xk[5] + ct) ** 2 - d3 ** 2],
+                [(xk[0] - xk[2]) ** 2 + xk[2] ** 2 + (xk[1] - xk[3]) ** 2 - (dfb / 2) ** 2 - dfb ** 2],
+                [(xk[0] - xk[4]) ** 2 + xk[4] ** 2 + (xk[1] - xk[5]) ** 2 - (dfb / 2) ** 2 - dfb ** 2],
+                [(xk[2] - xk[4]) ** 2 + (xk[2] + xk[4]) ** 2 + (xk[3] - xk[5]) ** 2 - dlr ** 2]
             ])
 
             # 构造jacobii矩阵， 方程组计为： F(X) = 0; 那么，jacobii矩阵 = F‘(X) = D(F(X))
             DFX = np.array([
-                [2 * xk[0] - dfb    , 2 * (xk[1] + ct)   , 0                    , 0                  , 0                    , 0                  ],
-                [0                  , 0                  , 4 * xk[2] + dfb + dlr, 2 * (xk[3] + ct)   , 0                    , 0                  ],
-                [0                  , 0                  , 0                    , 0                  , 4 * xk[4] + dfb + dlr, 2 * (xk[5] + ct)   ],
-                [2 * (xk[0] - xk[2]), 2 * (xk[1] - xk[5]), 4 * xk[2] - 2 * xk[0], 2 * (xk[3] - xk[1]), 0                    , 0                  ],
-                [2 * (xk[0] - xk[4]), 2 * (xk[1] - xk[5]), 0                    , 0                  , 4 * xk[4] - 2 * xk[0], 2 * (xk[5] - xk[1])],
-                [0                  , 0                  , 4 * xk[2]            , 2 * (xk[3] - xk[5]), 4 * xk[4]            , 2 * (xk[5] - xk[3])]
+                [2 * xk[0] - dfb, 2 * (xk[1] + ct), 0, 0, 0, 0],
+                [0, 0, 4 * xk[2] + dfb + dlr, 2 * (xk[3] + ct), 0, 0],
+                [0, 0, 0, 0, 4 * xk[4] + dfb + dlr, 2 * (xk[5] + ct)],
+                [2 * (xk[0] - xk[2]), 2 * (xk[1] - xk[5]), 4 * xk[2] - 2 * xk[0], 2 * (xk[3] - xk[1]), 0, 0],
+                [2 * (xk[0] - xk[4]), 2 * (xk[1] - xk[5]), 0, 0, 4 * xk[4] - 2 * xk[0], 2 * (xk[5] - xk[1])],
+                [0, 0, 4 * xk[2], 2 * (xk[3] - xk[5]), 4 * xk[4], 2 * (xk[5] - xk[3])]
             ])
 
             DFX_INV = np.linalg.inv(DFX)
