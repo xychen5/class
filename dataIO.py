@@ -9,6 +9,9 @@ def deg2rad(deg):
     return deg / 180.0 * math.pi
 
 
+def rad2deg(rad):
+    return rad * 180.0 / math.pi
+
 class DataItem:
     """
     输入数据单元的结构体,取右手系，x轴向前，y轴向作，z轴向上

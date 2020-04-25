@@ -2,23 +2,22 @@ from filter import *
 from dataIO import *
 import math
 
+
 class WashOut:
-    # 由于三自由度运动平台的限制，得到的数据只有，pitch，roll，updown为有效值
-    washOutData = {
-        "pitch": 0, #俯仰
-        "roll": 0, #翻滚
-        "yaw": 0, #艏摇
-        "updown": 0, #上下平移
-        "leftright": 0, #左右平移
-        "forwardback": 0  #前后平移
-    }
-
-
     def __init__(self, getSampleInterval):
         """
         初始化洗出流程类，包括各个方向的滤波器
         :param getSampleInterval:获取样本的时间间隔
         """
+        # 洗出算法的结果，由于三自由度运动平台的限制，得到的数据只有，pitch，roll，updown为有效值
+        self.__washOutData = {
+            "pitch": 0,  # 俯仰
+            "roll": 0,  # 翻滚
+            "yaw": 0,  # 艏摇
+            "updown": 0,  # 上下平移
+            "leftright": 0,  # 左右平移
+            "forwardback": 0  # 前后平移
+        }
         # x low pass filter settings
         self.xLP = TransLPFilter(getSampleInterval)
         self.xLP.setCutoffFreq(5.0)
@@ -40,7 +39,12 @@ class WashOut:
         self.__XYScale = 1
         self.__ZScale = 1
         self.__RScale = 1
-        self.__lastPitchX = 0 #上一个洗出的pitch的角度
+        self.__lastTiltPitchX = 0  # 上一个倾斜坐标系洗出的pitch的角度, 单位 rad
+        self.__lastTiltRollY = 0  # 上一个倾斜坐标系洗出的roll的角度
+        self.__lastRotPitchX = 0  # 上一个角速度通道得到的pitch的角度
+        self.__lastRotRollY = 0  # 上一个角速度通道得到的roll的角度
+        self.__lastTransZVelocity = 0  # 上一个平动加速度通道的Z方向的速度
+        self.__getSampleInterval = getSampleInterval  # 单位 s
 
     def setXYScale(self, scale):
         self.__XYScale = scale
@@ -51,6 +55,31 @@ class WashOut:
     def setRScale(self, scale):
         self.__RScale = scale
 
+    def restrictTiltAngleInThreshold(self, curRadAngle, preRadAngle):
+        """
+        将倾斜坐标系通道的角限制在合理范围内
+        :param curRadAngle: 滤波器当前输出的角度
+        :param preRadAngle: 滤波器上一次输出的角度
+        :return: 限制后的角度
+        """
+        # 判断角度是否位于[-pi/2, pi/2],超出范围则将其置为pi/2 or -pi/2
+        if not ((curRadAngle >= -deg2rad(90)) and (curRadAngle <= deg2rad(90))):
+            if curRadAngle > 0:
+                curRadAngle = deg2rad(90)
+            else:
+                curRadAngle = -deg2rad(90)
+
+        # 计算得到动平台在x or y方向的旋转的角速度为 (curRadAngle - preRadAngle)/getSampleInterval，其值需要小于人体感受阈值2.6 rad/s
+        if math.fabs(curRadAngle - preRadAngle) / self.__getSampleInterval > deg2rad(2.6):
+            maxPitchVal = deg2rad(2.6) * self.__getSampleInterval
+            if curRadAngle - preRadAngle > 0:
+                # 相比于上一次增加的角度,也就是增加幅度超过阈值
+                curRadAngle = preRadAngle + maxPitchVal
+            else:
+                # 相比于上一次减小的角度，减小幅度超过阈值
+                curRadAngle = preRadAngle - maxPitchVal
+        return curRadAngle
+
     def washOutAlgorithm(self, inputDataItem):
         # -->> 缩放
         scaledDataItem = inputDataItem
@@ -60,20 +89,46 @@ class WashOut:
         scaledDataItem.wPitch *= self.__RScale
         scaledDataItem.wRoll *= self.__RScale
 
-        # -->> tilt-coordination, 倾斜坐标系
+        # -----------------------------------------------
+        # -->> tilt-coordination, 倾斜坐标系，包括x,y两个方向
+        # -----------------------------------------------
+        # 由于平台限制，x,y方向的突发线性加速度无法模拟
+        # tilt simulate x
         fTiltX = self.xLP.filter(scaledDataItem.xAcc)
-        pitchX = math.asin(fTiltX)
+        tiltPitchX = math.asin(fTiltX)
+        self.__lastTiltPitchX = tiltPitchX = self.restrictTiltAngleInThreshold(tiltPitchX, self.__lastTiltPitchX)
 
-        # 判断picthX是否位于[-pi/2, pi/2],超出范围则将其置为pi/2 or -pi/2
-        if not ((pitchX >= -deg2rad(90)) and (pitchX <= deg2rad(90))):
-            if pitchX > 0:
-                pitchX = deg2rad(90)
-            else:
-                pitchX = -deg2rad(90)
+        # tilt simulate y
+        fTiltY = self.yLP.filter(scaledDataItem.yAcc)
+        tiltRollY = math.asin(fTiltY)  # 返回值为弧度
+        self.__lastTiltRollY = tiltRollY = self.restrictTiltAngleInThreshold(tiltRollY, self.__lastTiltRollY)
 
-        # 计算得到x方向的旋转的角加速度为 (pitchX - 上一个pitchX)/getSampleInterval，其值需要小于人体感受阈值2.6度
+        # -----------------------------------------------
+        # -->> Rotation,旋转通道,将角速度的高频率的部分拿出来模拟
+        # -----------------------------------------------
+        # rotation pitch
+        rotPitchW = self.pitchHP.filter(scaledDataItem.wPitch)  # 获得pitch方向的角速度的高频部分
+        rotPitchX = self.__lastRotPitchX + rotPitchW * self.__getSampleInterval  # 积分获得当前角速度带来的角度变化，然后获得当前的角度
+        self.__lastRotPitchX = rotPitchX
+        # rotation roll
+        rotRollW = self.rollHP.filter(scaledDataItem.wRoll)
+        rotRollY = self.__lastRotRollY + rotRollW * self.__getSampleInterval
+        self.__lastRotRollY = rotRollY
 
+        # -----------------------------------------------
+        # -->> translation,平动加速通道，主要模拟突发线性加速度
+        # -----------------------------------------------
+        # 由于运动平台限制，仅能模拟z方向的突发线性加速度，也就是滤出高频部分然后2次积分得到位移
+        zAccPlusG = scaledDataItem.zAcc  # 这里不再加入g的原因是，输入的就是人体的线性绝对加速度
+        fTransZAcc = self.zHP.filter(zAccPlusG)
+        # 计算出移动的位移， y = (v0 + a * T) * T
+        transZ = (self.__lastTransZVelocity + fTransZAcc * self.__getSampleInterval) * self.__getSampleInterval
+        self.__lastTransZVelocity = self.__lastTransZVelocity + fTransZAcc * self.__getSampleInterval
 
+        # 返回的值
+        self.__washOutData["pitch"] = rad2deg(tiltPitchX + tiltRollY)
+        self.__washOutData["roll"] = rad2deg(rotPitchX + rotRollY)
+        self.__washOutData["updown"] = transZ
 
     def getWashOutData(self):
-        return self.washOutData
+        return self.__washOutData
