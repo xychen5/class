@@ -1,5 +1,5 @@
 from filter import *
-from dataIO import *
+from dataInput import *
 import math
 
 
@@ -81,7 +81,15 @@ class WashOut:
         return curRadAngle
 
     def washOutAlgorithm(self, inputDataItem):
+        """
+        根据输入的数据执行洗出算法
+        :param inputDataItem: 详情见 DataItem 类
+        :return: 洗出的动平台的位置姿态，以字典数据返回
+        """
+
+        # -----------------------------------------------
         # -->> 缩放
+        # -----------------------------------------------
         scaledDataItem = inputDataItem
         scaledDataItem.xAcc *= self.__XYScale
         scaledDataItem.yAcc *= self.__XYScale
@@ -97,6 +105,7 @@ class WashOut:
         fTiltX = self.xLP.filter(scaledDataItem.xAcc)
         tiltPitchX = math.asin(fTiltX)
         self.__lastTiltPitchX = tiltPitchX = self.restrictTiltAngleInThreshold(tiltPitchX, self.__lastTiltPitchX)
+        # print ("pitch_1: ", tiltPitchX)
 
         # tilt simulate y
         fTiltY = self.yLP.filter(scaledDataItem.yAcc)
@@ -110,6 +119,8 @@ class WashOut:
         rotPitchW = self.pitchHP.filter(scaledDataItem.wPitch)  # 获得pitch方向的角速度的高频部分
         rotPitchX = self.__lastRotPitchX + rotPitchW * self.__getSampleInterval  # 积分获得当前角速度带来的角度变化，然后获得当前的角度
         self.__lastRotPitchX = rotPitchX
+        # print ("pitch_2: ", rotPitchX)
+
         # rotation roll
         rotRollW = self.rollHP.filter(scaledDataItem.wRoll)
         rotRollY = self.__lastRotRollY + rotRollW * self.__getSampleInterval
@@ -126,9 +137,47 @@ class WashOut:
         self.__lastTransZVelocity = self.__lastTransZVelocity + fTransZAcc * self.__getSampleInterval
 
         # 返回的值
-        self.__washOutData["pitch"] = rad2deg(tiltPitchX + tiltRollY)
-        self.__washOutData["roll"] = rad2deg(rotPitchX + rotRollY)
+        self.__washOutData["pitch"] = rad2deg(tiltPitchX + rotPitchX)
+        self.__washOutData["roll"] = rad2deg(tiltRollY + rotRollY)
         self.__washOutData["updown"] = transZ
+
+        return self.__washOutData
 
     def getWashOutData(self):
         return self.__washOutData
+
+# # 使用以下代码测试
+# wo = WashOut(0.5)
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(1, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(1, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(1, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(1, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+# t1 = DataItem(0, 0, 0, 0, 0)
+# tmp = wo.washOutAlgorithm(t1)
+# print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))

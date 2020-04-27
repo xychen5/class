@@ -95,7 +95,7 @@ class TransHPFilter(BaseFilter):
         return self.__outputSrc_2order[0]
 
 
-# 一阶高通实现旋转的角加速度模拟
+# 一阶高通实现旋转的角速度通道模拟
 # 经典洗出算法使用的是一阶，改成2阶可以回到原点
 class RotatHPFilter(BaseFilter):
     def __init__(self, getSampleInterval):
@@ -114,6 +114,7 @@ class RotatHPFilter(BaseFilter):
         self.__outputSrc_1order[1] = self.__outputSrc_1order[0]
         return self.__outputSrc_1order[0]
 
+# 旋转通道的2阶滤波器的实现
 # class RotatHPFilter(BaseFilter):
 #     def __init__(self, getSampleInterval):
 #         super().__init__(getSampleInterval)
@@ -142,21 +143,21 @@ class RotatHPFilter(BaseFilter):
 #         return self.__outputSrc_2order[0]
 
 # 可以看出，每个实例的私有变量是互相不影响的
-b = BaseFilter(0.01)
-c = BaseFilter(0.03)
-print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
-t = TransLPFilter(0.02)
-print(t.getGetSampleInterval())
-print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
-print(b.getCutoffFreq(), "  ", b.getDamping())
-b.setGetSampleInterval(0.07)
-print(t.getGetSampleInterval())
-print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
-print(b.__dict__)
+# b = BaseFilter(0.01)
+# c = BaseFilter(0.03)
+# print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+# t = TransLPFilter(0.02)
+# print(t.getGetSampleInterval())
+# print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+# print(b.getCutoffFreq(), "  ", b.getDamping())
+# b.setGetSampleInterval(0.07)
+# print(t.getGetSampleInterval())
+# print(b.getGetSampleInterval(), "  ", c.getGetSampleInterval())
+# print(b.__dict__)
 
 
 
-
+# 对比1，2阶滤波器的代码
 # # unit func implement:
 # def unit(t):
 #     r = np.where(t > 1, 1.0, 0.0)
