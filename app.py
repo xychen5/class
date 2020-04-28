@@ -1,7 +1,11 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from dataIO import *
+import dataInput as DI
+import dataOutput as DO
 from washout import *
+import threading
+import time
+
 
 # configurations
 DEBUG = True
@@ -13,6 +17,15 @@ app.config.from_object(__name__)
 # enable CORS
 CORS(app, resources={r'/*': {'origins': '*'}})
 
+# 读取的数据文件的路径
+DATA_FILE_PATH = "/home/nash5/Desktop/class/data/pitchOnly.csv"
+
+# 存放读取的数据和洗出,反解正解后的数据，这些数据供前端读取
+srcData = []
+resData = []
+
+# 用于srcData和resData的锁
+lock = threading.Lock
 
 @app.route('/')
 def hello_world():
@@ -29,7 +42,55 @@ def visualize():
     return 'return your visualize here'
 
 
+class DaemonThread(threading.Thread):
+    def __init__(self, threadID, name, getSampleInterval):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.getSampleInterval = getSampleInterval
+
+    def run(self):
+        """
+        通过覆盖threading.Thread 父类的run方法来执行自己的函数，执行的逻辑如下：
+            1，从文件中读取运动数据
+            2，每间隔一个自定义周期，执行洗出和反解正解
+            3，一般会一直循环在 2 里面，这是为了模拟真实的数据采集
+        :return: none
+        """
+        dataReader = DI.DataInput()
+        dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/pitchOnly.csv')
+        while 1:
+            wo = WashOut(self.getSampleInterval)
+            ik = DO.InverseKinematics()
+            for item in dataAll:
+                # 对于一个数据项，要执行的处理流程如下：
+
+                # 将读取的数据加入srcData，由于io()函数会读取srcData,写入的时候需要加锁
+                lock.acquire()
+                srcData.append(item)
+                lock.release()
+
+                # 执行洗出算法
+                washOutData = wo.washOutAlgorithm(item)
+
+                # 执行反解
+                inverseKinematicsData = ik.DataOutput(washOutData)
+
+                # 将反解的数据加入resData
+                lock.acquire()
+                resData.append(inverseKinematicsData)
+                lock.release()
+
+
+                time.sleep(self.getSampleInterval)
+
+            print ("implement the main deal proccess here!")
+
 if __name__ == '__main__':
+    # 首先开启后台线程，该线程的运行方式： 每隔一个采样周期，则运行洗出算法和反解正解过程，同时更新全局变量
+    daemonThread = DaemonThread(1, "daemon", 1)
+    daemonThread.start()
+    # 运行flask app
     app.run()
 
 # 主要问题，如何实现定时获取，我们这里由于无法实时获得数据，便采用模拟的方式，每隔一个getSampleInterval，
@@ -38,3 +99,5 @@ if __name__ == '__main__':
 # 在main中执行定时采样并且调用洗出，反解的计算的后台线程，前段便也按照相关的时间间隔获取对应的共有数据
 #   - 读取公共数据的时候需要上锁
 # 然后便是输入数据显示的需求，看看是不是可以调用开源头的数据显示，初步考虑采用grafana,或者echarts的timeline也可以
+
+# 简单实现： 仅仅读取数据然后开始模拟，前端的行为是根据

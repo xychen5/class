@@ -4,19 +4,36 @@ import logging as LOG
 import numpy as np
 
 class InverseKinematics:
-    # data need to output
-    inverseKinematicsData = {}
-    forwardKinematicsData = {}
 
     # 牛顿迭代法求解方程的最大迭代步数和误差定义
     MAX_ITERATION_NUM = 100
     MIN_ERROR = 0.0001
 
+    def __init__(self):
+        """
+        给该类的实例引入需要返回的数据,分别为动平台的3个顶点的坐标
+        """
+        self.__inverseKinematicsData = {
+            "xa1": 0,
+            "ya1": 0,
+            "za1": 0,
+            "xa2": 0,
+            "ya2": 0,
+            "za2": 0,
+            "xa3": 0,
+            "ya3": 0,
+            "za3": 0,
+            "h1": 0,
+            "h2": 0,
+            "h3": 0,
+            "normalVector": []
+        }
+
     def DataOutput(self, washOutData):
         """
         将洗出算法的输出，进行运动学的正解反解开
         :param washOutData: 洗出算法的输出数据，包含3个方向的旋转角度，和3个方向的平移
-        :return:
+        :return: self.__inverseKinematicsData
         """
         # 由于 3 dof 运动平台限制，从洗出算法中获得的有效数据只有，updown，pitch，roll三种
         # ----------------------------------------------
@@ -185,7 +202,7 @@ class InverseKinematics:
             xk = xkp1
 
         # 求解后，xk即为新的三个顶点的值
-        # 需要注意改进的地方： 反解里的三个顶点的坐标值会每次都变，注意修改，把他们加入到类的属性之后注意他们值的变化
+        # 需要注意改进的地方： 反解里的三个顶点的坐标值会每次都变，是根据洗出的updown，roll，pitch计算出来的，无需担心
         # 正解里的x(0)的值的确定,毕竟x(0)不总是处于动平台平行定平台的位置
 
         # # for test：
@@ -196,8 +213,30 @@ class InverseKinematics:
         #
         # print ("rollNew : %f\n pitchNew : %f\n updownNew : %f\n"%(rollNew, pitchNew, updownNew))
 
+        # 更新需要返回的值,这里额外计算动平台3个顶点构成的平面的法向量
+        self.__inverseKinematicsData["xa1"] = a1_T[0]
+        self.__inverseKinematicsData["ya1"] = a1_T[1]
+        self.__inverseKinematicsData["za1"] = a1_T[2]
+        self.__inverseKinematicsData["xa2"] = a2_T[0]
+        self.__inverseKinematicsData["ya2"] = a2_T[1]
+        self.__inverseKinematicsData["za2"] = a2_T[2]
+        self.__inverseKinematicsData["xa3"] = a3_T[0]
+        self.__inverseKinematicsData["ya3"] = a3_T[1]
+        self.__inverseKinematicsData["za3"] = a3_T[2]
+        self.__inverseKinematicsData["h1"] = h1
+        self.__inverseKinematicsData["h2"] = h2
+        self.__inverseKinematicsData["h3"] = h3
+        # 计算法向量方法： a(x1, y1, z1)和b(x2, y2, z2)为平面中两个不平行的向量，其外积就是法向量,i,j,k为三个轴的单位向量
+        # a * b = (y1z2 - y2z1)i - (x1z2-x2z1)j + (x1y2 - x2y1)k
+        # 这里我们用 a1a2 * a1a3得到法向量
+        a1a2 = [a2_T[0] - a1_T[0], a2_T[1] - a1_T[1], a2_T[2] - a1_T[2]]
+        a1a3 = [a3_T[0] - a1_T[0], a3_T[1] - a1_T[1], a3_T[2] - a1_T[2]]
+        normolVector = [(a1a2[1] * a1a3[2] - a1a3[1] * a1a2[2]),
+                        -(a1a2[0] * a1a3[2] - a1a3[0] * a1a2[2]),
+                        (a1a2[0] * a1a3[1] - a1a3[0] * a1a2[1])]
+        self.__inverseKinematicsData["normalVector"] = normolVector
 
-        return self.inverseKinematicsData
+        return self.__inverseKinematicsData
 
 
 # to test the func: DataOutput

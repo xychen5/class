@@ -11,7 +11,7 @@ def rad2deg(rad):
 class DataItem:
     def __init__(self, pitchVelocity, rollVelocity, xAcc, yAcc, zAcc):
         """
-        输入数据单元的结构体,取右手系，x轴向前，y轴向作，z轴向上,这也是传给洗出算法的基本数据单元
+        输入数据单元的结构体,取右手系，x轴向前，y轴向左，z轴向上,这也是传给洗出算法的基本数据单元
         :param pitchVelocity: 俯仰角速度, 单位为：degree/s
         :param rollVelocity: 翻滚角速度
         :param xAcc: x方向的平动加速度,单位为：m/s^2
