@@ -3,6 +3,7 @@ import math
 import logging as LOG
 import numpy as np
 
+
 class InverseKinematics:
 
     # 牛顿迭代法求解方程的最大迭代步数和误差定义
@@ -112,14 +113,14 @@ class InverseKinematics:
         a3_T = np.matmul(T, a3)
 
         # 根据在状态T的a1,a2,a3的坐标获和定平台的b1,b2,b3的坐标获得电动缸的进动
-        h1 = math.sqrt((a1_T[0] - b1[0]) ** 2 + (a1_T[1] - b1[1]) ** 2 + (a1_T[2] - b1[2]) ** 2) - \
+        h1 = math.sqrt((a1_T[0][0] - b1[0][0]) ** 2 + (a1_T[1][0] - b1[1][0]) ** 2 + (a1_T[2][0] - b1[2][0]) ** 2) - \
              (CYLIDER_HEIGHT + MAX_CYLIDER_LENGTH)
-        h2 = math.sqrt((a2_T[0] - b2[0]) ** 2 + (a2_T[1] - b2[1]) ** 2 + (a2_T[2] - b2[2]) ** 2) - \
+        h2 = math.sqrt((a2_T[0][0] - b2[0][0]) ** 2 + (a2_T[1][0] - b2[1][0]) ** 2 + (a2_T[2][0] - b2[2][0]) ** 2) - \
              (CYLIDER_HEIGHT + MAX_CYLIDER_LENGTH)
-        h3 = math.sqrt((a3_T[0] - b3[0]) ** 2 + (a3_T[1] - b3[1]) ** 2 + (a3_T[2] - b3[2]) ** 2) - \
+        h3 = math.sqrt((a3_T[0][0] - b3[0][0]) ** 2 + (a3_T[1][0] - b3[1][0]) ** 2 + (a3_T[2][0] - b3[2][0]) ** 2) - \
              (CYLIDER_HEIGHT + MAX_CYLIDER_LENGTH)
 
-        # print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
+        print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
 
         if math.fabs(h1) > MAX_CYLIDER_LENGTH:
             LOG.error("the forward cylinder is beyond the limit!")
@@ -214,23 +215,23 @@ class InverseKinematics:
         # print ("rollNew : %f\n pitchNew : %f\n updownNew : %f\n"%(rollNew, pitchNew, updownNew))
 
         # 更新需要返回的值,这里额外计算动平台3个顶点构成的平面的法向量
-        self.__inverseKinematicsData["xa1"] = a1_T[0]
-        self.__inverseKinematicsData["ya1"] = a1_T[1]
-        self.__inverseKinematicsData["za1"] = a1_T[2]
-        self.__inverseKinematicsData["xa2"] = a2_T[0]
-        self.__inverseKinematicsData["ya2"] = a2_T[1]
-        self.__inverseKinematicsData["za2"] = a2_T[2]
-        self.__inverseKinematicsData["xa3"] = a3_T[0]
-        self.__inverseKinematicsData["ya3"] = a3_T[1]
-        self.__inverseKinematicsData["za3"] = a3_T[2]
+        self.__inverseKinematicsData["xa1"] = a1_T[0][0]
+        self.__inverseKinematicsData["ya1"] = a1_T[1][0]
+        self.__inverseKinematicsData["za1"] = a1_T[2][0]
+        self.__inverseKinematicsData["xa2"] = a2_T[0][0]
+        self.__inverseKinematicsData["ya2"] = a2_T[1][0]
+        self.__inverseKinematicsData["za2"] = a2_T[2][0]
+        self.__inverseKinematicsData["xa3"] = a3_T[0][0]
+        self.__inverseKinematicsData["ya3"] = a3_T[1][0]
+        self.__inverseKinematicsData["za3"] = a3_T[2][0]
         self.__inverseKinematicsData["h1"] = h1
         self.__inverseKinematicsData["h2"] = h2
         self.__inverseKinematicsData["h3"] = h3
         # 计算法向量方法： a(x1, y1, z1)和b(x2, y2, z2)为平面中两个不平行的向量，其外积就是法向量,i,j,k为三个轴的单位向量
         # a * b = (y1z2 - y2z1)i - (x1z2-x2z1)j + (x1y2 - x2y1)k
         # 这里我们用 a1a2 * a1a3得到法向量
-        a1a2 = [a2_T[0] - a1_T[0], a2_T[1] - a1_T[1], a2_T[2] - a1_T[2]]
-        a1a3 = [a3_T[0] - a1_T[0], a3_T[1] - a1_T[1], a3_T[2] - a1_T[2]]
+        a1a2 = [a2_T[0][0] - a1_T[0][0], a2_T[1][0] - a1_T[1][0], a2_T[2][0] - a1_T[2][0]]
+        a1a3 = [a3_T[0][0] - a1_T[0][0], a3_T[1][0] - a1_T[1][0], a3_T[2][0] - a1_T[2][0]]
         normolVector = [(a1a2[1] * a1a3[2] - a1a3[1] * a1a2[2]),
                         -(a1a2[0] * a1a3[2] - a1a3[0] * a1a2[2]),
                         (a1a2[0] * a1a3[1] - a1a3[0] * a1a2[1])]

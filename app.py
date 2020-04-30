@@ -23,9 +23,37 @@ DATA_FILE_PATH = "/home/nash5/Desktop/class/data/pitchOnly.csv"
 # 存放读取的数据和洗出,反解正解后的数据，这些数据供前端读取
 srcData = []
 resData = []
+sumIOData = {
+    'wPitch': [],
+    'wRoll': [],
+    'xAcc': [],
+    'yAcc': [],
+    'zAcc': [],
+    'h1': [],
+    'h2': [],
+    'h3': []
+}
+
+sumResData = {
+    'xa1': [],
+    'ya1': [],
+    'za1': [],
+    'xa2': [],
+    'ya2': [],
+    'za2': [],
+    'xa3': [],
+    'ya3': [],
+    'za3': [],
+    'h1': [],
+    'h2': [],
+    'h3': [],
+    'pitch': [],
+    'roll': [],
+    'updown': []
+}
 
 # 用于srcData和resData的锁
-lock = threading.Lock
+lock = threading.Lock()
 
 @app.route('/')
 def hello_world():
@@ -34,12 +62,14 @@ def hello_world():
 
 @app.route('/io', methods=['GET'])
 def io():
-    return jsonify('return your input and output data here')
+    # print (sumIOData)
+    return jsonify(sumIOData)
 
 
 @app.route('/visualize', methods=['GET'])
 def visualize():
-    return 'return your visualize here'
+    print (sumResData)
+    return jsonify(sumResData)
 
 
 class DaemonThread(threading.Thread):
@@ -59,19 +89,31 @@ class DaemonThread(threading.Thread):
         """
         dataReader = DI.DataInput()
         dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/pitchOnly.csv')
-        while 1:
+        redoTime = 1 #  重复上面的数据的次数
+        while redoTime > 0:
+            redoTime -= 1
             wo = WashOut(self.getSampleInterval)
             ik = DO.InverseKinematics()
             for item in dataAll:
                 # 对于一个数据项，要执行的处理流程如下：
-
+                print (item.wPitch)
                 # 将读取的数据加入srcData，由于io()函数会读取srcData,写入的时候需要加锁
                 lock.acquire()
                 srcData.append(item)
+                sumIOData['wPitch'].append(item.wPitch)
+                sumIOData['wRoll'].append(item.wRoll)
+                sumIOData['xAcc'].append(item.xAcc)
+                sumIOData['yAcc'].append(item.yAcc)
+                sumIOData['zAcc'].append(item.zAcc)
                 lock.release()
 
-                # 执行洗出算法
+                # 执行洗出算法, 将洗出的数据加入sumResData，注意，洗出的为角度，这里我们将其化为弧度
                 washOutData = wo.washOutAlgorithm(item)
+                lock.acquire()
+                sumResData['pitch'].append(deg2rad(washOutData['pitch']))
+                sumResData['roll'].append(deg2rad(washOutData['roll']))
+                sumResData['updown'].append(deg2rad(washOutData['updown']))
+                lock.release()
 
                 # 执行反解
                 inverseKinematicsData = ik.DataOutput(washOutData)
@@ -79,13 +121,29 @@ class DaemonThread(threading.Thread):
                 # 将反解的数据加入resData
                 lock.acquire()
                 resData.append(inverseKinematicsData)
+                sumResData['xa1'].append(inverseKinematicsData["xa1"])
+                sumResData['ya1'].append(inverseKinematicsData["ya1"])
+                sumResData['za1'].append(inverseKinematicsData["za1"])
+                sumResData['xa2'].append(inverseKinematicsData["xa2"])
+                sumResData['ya2'].append(inverseKinematicsData["ya2"])
+                sumResData['za2'].append(inverseKinematicsData["za2"])
+                sumResData['xa3'].append(inverseKinematicsData["xa3"])
+                sumResData['ya3'].append(inverseKinematicsData["ya3"])
+                sumResData['za3'].append(inverseKinematicsData["za3"])
+                sumResData['h1'].append(inverseKinematicsData["h1"])
+                sumResData['h2'].append(inverseKinematicsData["h2"])
+                sumResData['h3'].append(inverseKinematicsData["h3"])
+                sumIOData['h1'].append(inverseKinematicsData["h1"])
+                sumIOData['h2'].append(inverseKinematicsData["h2"])
+                sumIOData['h3'].append(inverseKinematicsData["h3"])
                 lock.release()
 
 
                 time.sleep(self.getSampleInterval)
 
-            print ("implement the main deal proccess here!")
-
+                # print(srcData[-1], resData[-1])
+            print (sumResData, "\n\n ->> ", sumIOData['wPitch'])
+            print ("all the redo times have completed!", " ---> ", redoTime)
 if __name__ == '__main__':
     # 首先开启后台线程，该线程的运行方式： 每隔一个采样周期，则运行洗出算法和反解正解过程，同时更新全局变量
     daemonThread = DaemonThread(1, "daemon", 1)
