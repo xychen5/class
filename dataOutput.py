@@ -120,7 +120,7 @@ class InverseKinematics:
         h3 = math.sqrt((a3_T[0][0] - b3[0][0]) ** 2 + (a3_T[1][0] - b3[1][0]) ** 2 + (a3_T[2][0] - b3[2][0]) ** 2) - \
              (CYLIDER_HEIGHT + MAX_CYLIDER_LENGTH)
 
-        print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
+        # print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
 
         if math.fabs(h1) > MAX_CYLIDER_LENGTH:
             LOG.error("the forward cylinder is beyond the limit!")

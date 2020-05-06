@@ -2,6 +2,7 @@ from filter import *
 from dataInput import *
 import math
 
+G =  9.80665
 
 class WashOut:
     def __init__(self, getSampleInterval):
@@ -103,13 +104,13 @@ class WashOut:
         # 由于平台限制，x,y方向的突发线性加速度无法模拟
         # tilt simulate x
         fTiltX = self.xLP.filter(scaledDataItem.xAcc)
-        tiltPitchX = math.asin(fTiltX)
+        tiltPitchX = math.asin(fTiltX / G)
         self.__lastTiltPitchX = tiltPitchX = self.restrictTiltAngleInThreshold(tiltPitchX, self.__lastTiltPitchX)
         # print ("pitch_1: ", tiltPitchX)
 
         # tilt simulate y
         fTiltY = self.yLP.filter(scaledDataItem.yAcc)
-        tiltRollY = math.asin(fTiltY)  # 返回值为弧度
+        tiltRollY = math.asin(fTiltY / G)  # 返回值为弧度
         self.__lastTiltRollY = tiltRollY = self.restrictTiltAngleInThreshold(tiltRollY, self.__lastTiltRollY)
 
         # -----------------------------------------------
@@ -154,30 +155,30 @@ print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]
 t1 = DataItem(0, 0, 0, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(1, 0, 0, 0, 0)
-tmp = wo.washOutAlgorithm(t1)
-print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(1, 0, 0, 0, 0)
-tmp = wo.washOutAlgorithm(t1)
-print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(1, 0, 0, 0, 0)
-tmp = wo.washOutAlgorithm(t1)
-print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(1, 0, 0, 0, 0)
-tmp = wo.washOutAlgorithm(t1)
-print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
 t1 = DataItem(0, 0, 0, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(0, 0, 0, 0, 0)
+t1 = DataItem(0, 0, 1, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(0, 0, 0, 0, 0)
+t1 = DataItem(0, 0, 1, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(0, 0, 0, 0, 0)
+t1 = DataItem(0, 0, 1, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
-t1 = DataItem(0, 0, 0, 0, 0)
+t1 = DataItem(0, 0, 1, 0, 0)
+tmp = wo.washOutAlgorithm(t1)
+print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+t1 = DataItem(0, 0, 1, 0, 0)
+tmp = wo.washOutAlgorithm(t1)
+print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+t1 = DataItem(0, 0, 1, 0, 0)
+tmp = wo.washOutAlgorithm(t1)
+print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+t1 = DataItem(0, 0, 1, 0, 0)
+tmp = wo.washOutAlgorithm(t1)
+print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))
+t1 = DataItem(0, 0, 1, 0, 0)
 tmp = wo.washOutAlgorithm(t1)
 print (">>>pitch: %f roll: %f z: %f" % (tmp["pitch"], tmp["roll"], tmp["updown"]))

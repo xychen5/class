@@ -8,7 +8,7 @@ import time
 
 
 # configurations
-DEBUG = True
+DEBUG = False
 
 # instantiate the app
 app = Flask(__name__)
@@ -68,7 +68,7 @@ def io():
 
 @app.route('/visualize', methods=['GET'])
 def visualize():
-    print (sumResData)
+    # print (sumResData)
     return jsonify(sumResData)
 
 
@@ -88,13 +88,17 @@ class DaemonThread(threading.Thread):
         :return: none
         """
         dataReader = DI.DataInput()
-        dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/pitchOnly.csv')
-        redoTime = 1 #  重复上面的数据的次数
+        dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/xAccOnly.csv')
+        redoTime = 1  #  重复上面的数据的次数
+        forEachItemTimeUsage = 0  # 单位为s
         while redoTime > 0:
             redoTime -= 1
             wo = WashOut(self.getSampleInterval)
             ik = DO.InverseKinematics()
+            sumEachItemTimeUsage = 0
             for item in dataAll:
+                # 计算性能现在开始计时：
+                st_time = time.time()
                 # 对于一个数据项，要执行的处理流程如下：
                 print (item.wPitch)
                 # 将读取的数据加入srcData，由于io()函数会读取srcData,写入的时候需要加锁
@@ -138,15 +142,21 @@ class DaemonThread(threading.Thread):
                 sumIOData['h3'].append(inverseKinematicsData["h3"])
                 lock.release()
 
+                end_time = time.time()
+                sumEachItemTimeUsage += end_time - st_time
+                print("time usage is: ", end_time - st_time, "s")
 
                 time.sleep(self.getSampleInterval)
 
                 # print(srcData[-1], resData[-1])
-            print (sumResData, "\n\n ->> ", sumIOData['wPitch'])
+            # print (sumResData, "\n\n ->> ", sumIOData['wPitch'])
             print ("all the redo times have completed!", " ---> ", redoTime)
+            forEachItemTimeUsage = sumEachItemTimeUsage / len(dataAll)
+            print ("forEachItemTimeUsage is ", forEachItemTimeUsage, "s")
 if __name__ == '__main__':
     # 首先开启后台线程，该线程的运行方式： 每隔一个采样周期，则运行洗出算法和反解正解过程，同时更新全局变量
     daemonThread = DaemonThread(1, "daemon", 1)
+    daemonThread.setDaemon(True)
     daemonThread.start()
     # 运行flask app
     app.run()
