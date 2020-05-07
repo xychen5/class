@@ -88,7 +88,7 @@ class DaemonThread(threading.Thread):
         :return: none
         """
         dataReader = DI.DataInput()
-        dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/xAccOnly.csv')
+        dataAll = dataReader.LoadFromFile('/home/nash5/Desktop/class/data/fullTest.csv')
         redoTime = 1  #  重复上面的数据的次数
         forEachItemTimeUsage = 0  # 单位为s
         while redoTime > 0:
@@ -116,7 +116,7 @@ class DaemonThread(threading.Thread):
                 lock.acquire()
                 sumResData['pitch'].append(deg2rad(washOutData['pitch']))
                 sumResData['roll'].append(deg2rad(washOutData['roll']))
-                sumResData['updown'].append(deg2rad(washOutData['updown']))
+                sumResData['updown'].append(washOutData['updown'])
                 lock.release()
 
                 # 执行反解

@@ -120,7 +120,7 @@ class InverseKinematics:
         h3 = math.sqrt((a3_T[0][0] - b3[0][0]) ** 2 + (a3_T[1][0] - b3[1][0]) ** 2 + (a3_T[2][0] - b3[2][0]) ** 2) - \
              (CYLIDER_HEIGHT + MAX_CYLIDER_LENGTH)
 
-        # print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
+        print ("h1: %f\n h2: %f\n h3: %f\n"%(h1, h2, h3))
 
         if math.fabs(h1) > MAX_CYLIDER_LENGTH:
             LOG.error("the forward cylinder is beyond the limit!")
@@ -206,13 +206,13 @@ class InverseKinematics:
         # 需要注意改进的地方： 反解里的三个顶点的坐标值会每次都变，是根据洗出的updown，roll，pitch计算出来的，无需担心
         # 正解里的x(0)的值的确定,毕竟x(0)不总是处于动平台平行定平台的位置
 
-        # # for test：
-        # rollNew = math.atan((xk[3][0] - xk[5][0]) / LR_LENGTH) * 180 / math.pi
-        # pitchNew = math.atan(((xk[3][0] + xk[5][0]) / 2 - xk[1][0]) / FB_LENGTH) * 180 / math.pi
-        # lastZ = 0
-        # updownNew = ((xk[3][0] + xk[5][0]) / 2 + xk[1][0] ) / 2 - lastZ # 当前的动平台的中心的纵坐标 减去 上一次的纵坐标
-        #
-        # print ("rollNew : %f\n pitchNew : %f\n updownNew : %f\n"%(rollNew, pitchNew, updownNew))
+        # for test：
+        rollNew = math.atan((xk[3][0] - xk[5][0]) / LR_LENGTH) * 180 / math.pi
+        pitchNew = math.atan(((xk[3][0] + xk[5][0]) / 2 - xk[1][0]) / FB_LENGTH) * 180 / math.pi
+        lastZ = 0
+        updownNew = ((xk[3][0] + xk[5][0]) / 2 + xk[1][0] ) / 2 - lastZ # 当前的动平台的中心的纵坐标 减去 上一次的纵坐标
+
+        print ("rollNew : %f\n pitchNew : %f\n updownNew : %f\n"%(rollNew, pitchNew, updownNew))
 
         # 更新需要返回的值,这里额外计算动平台3个顶点构成的平面的法向量
         self.__inverseKinematicsData["xa1"] = a1_T[0][0]
@@ -246,10 +246,10 @@ class InverseKinematics:
 #         washOutData["roll"] = 2.1
 #         washOutData["updown"] = 6.3
 tmp = {
-    "pitch": 1.2,  # 俯仰
-    "roll": 2.1,  # 翻滚
+    "pitch": 0.0,  # 俯仰
+    "roll": 0.0,  # 翻滚
     "yaw": 0,  # 艏摇
-    "updown": 6.3,  # 上下平移
+    "updown": 405,  # 上下平移
     "leftright": 0,  # 左右平移
     "forwardback": 0  # 前后平移
 }
